@@ -41,6 +41,7 @@ namespace PublicSurfaceArea
             foreach (var tree in syntaxTreeCollection)
             {
                 AddTypesFromSyntaxTree(tree, types);
+                AddDelegatesFromSyntaxTree(tree, types);
             }
         }
 
@@ -58,6 +59,31 @@ namespace PublicSurfaceArea
                     types.Add(fullyQualifiedName, fullyQualifiedName);
             }
         }
+
+        private static void AddDelegatesFromSyntaxTree(SyntaxTree tree, Dictionary<string, string> types)
+        {
+            CompilationUnitSyntax root = tree.GetCompilationUnitRoot();
+
+            var allPublicTypes = root.DescendantNodes().OfType<DelegateDeclarationSyntax>()
+                .Where(t => HasPublicModifier(t));
+
+            foreach (var item in allPublicTypes)
+            {
+                string fullyQualifiedName;
+                if (item.Parent is NamespaceDeclarationSyntax)
+                {
+                    fullyQualifiedName = ((NamespaceDeclarationSyntax)item.Parent).Name.ToFullString().Trim() + "." + GetBaseTypeName(item);
+                }
+                else
+                {
+                    fullyQualifiedName = GetFullyQualifiedName((BaseTypeDeclarationSyntax)item.Parent, item.Identifier.ValueText.Trim());
+                }
+
+                if (!types.ContainsKey(fullyQualifiedName))
+                    types.Add(fullyQualifiedName, fullyQualifiedName);
+            }
+        }
+
 
         private static string GetFullyQualifiedName(BaseTypeDeclarationSyntax node, string nested = "")
         {
@@ -80,6 +106,18 @@ namespace PublicSurfaceArea
             {
                 var actualType = (TypeDeclarationSyntax)type;
                 var typeParameterList = actualType.TypeParameterList;
+                return typeParameterList != null ? typeName + "`" + typeParameterList.Parameters.Count : typeName;
+            }
+            return typeName;
+        }
+
+        private static string GetBaseTypeName(DelegateDeclarationSyntax type)
+        {
+            string typeName = type.Identifier.ValueText;
+
+            if (type.TypeParameterList != null)
+            {
+                var typeParameterList = type.TypeParameterList;
                 return typeParameterList != null ? typeName + "`" + typeParameterList.Parameters.Count : typeName;
             }
             return typeName;
@@ -122,6 +160,18 @@ namespace PublicSurfaceArea
         }
 
         private static bool HasPublicModifier(BaseTypeDeclarationSyntax token)
+        {
+            foreach (SyntaxToken modifier in token.Modifiers)
+            {
+                if (modifier.Text == "public")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool HasPublicModifier(DelegateDeclarationSyntax token)
         {
             foreach (SyntaxToken modifier in token.Modifiers)
             {
