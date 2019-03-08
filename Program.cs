@@ -21,14 +21,14 @@ namespace PublicSurfaceArea
             List<string> srcTypes = new List<string>();
 
             GetEverythingFromDirectory(srcdirectoryName, srcTypes);
-            PrintList(srcTypes);
-            Console.WriteLine("\nPrinting Types in Ref\n");
+            //PrintList(srcTypes);
+            //Console.WriteLine("\nPrinting Types in Ref\n");
             GetEverythingFromDirectory(refdirectoryName, reftypes);
-            PrintList(reftypes);
+            //PrintList(reftypes);
             //File.WriteAllLines(srcdirectoryName + AssemblyName + ".reftypes.cs", reftypes);
-            //string typeForwards = WriteAllTypeForwards(reftypes, srcTypes);
-            //File.WriteAllText(srcdirectoryName + AssemblyName + ".Forwards.cs", typeForwards);
-            //Console.WriteLine("Done");
+            string typeForwards = WriteAllTypeForwards(reftypes, srcTypes);
+            File.WriteAllText(srcdirectoryName + AssemblyName + ".Forwards.cs", typeForwards);
+            Console.WriteLine("Done");
             Console.ReadLine();   
         }
 
@@ -182,13 +182,13 @@ namespace PublicSurfaceArea
             return Directory.EnumerateFiles(DirectoryName, "*", SearchOption.AllDirectories);
         }
 
-        private static string WriteAllTypeForwards(Dictionary<string, string> refTypes, Dictionary<string, string> srcTypes)
+        private static string WriteAllTypeForwards(List<string> refTypes, List<string> srcTypes)
         {
             StringBuilder sb = new StringBuilder();
-            foreach (var key in refTypes.Keys)
+            foreach (var item in refTypes)
             {
-                if (!srcTypes.ContainsKey(key))
-                    AddTypeForwardToStringBuilder(sb, key);
+                if (!srcTypes.Contains(item))
+                    AddTypeForwardToStringBuilder(sb, item);
             }
             return sb.ToString();
         }
@@ -196,11 +196,6 @@ namespace PublicSurfaceArea
         private static void AddTypeForwardToStringBuilder(StringBuilder sb, string typeName)
         {
             sb.Append("[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(" + typeName + "))]\n");
-        }
-
-        private static void WriteTypeForwards(string text, string projectNamePath)
-        {
-            File.WriteAllText(projectNamePath, text);
         }
     }
 }
